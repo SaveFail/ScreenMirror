@@ -1,17 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.ScreenMirror" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.ScreenMirror" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">@color/brand</item>
         <item name="colorOnPrimary">#FFFFFF</item>
-        <item name="colorPrimaryContainer">@color/brand_container</item>
-        <item name="colorOnPrimaryContainer">@color/on_brand_container</item>
+        <item name="colorPrimaryContainer">@color/brand_dark</item>
+        <item name="colorOnPrimaryContainer">#FFFFFF</item>
         <item name="colorSecondary">@color/accent</item>
-        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorOnSecondary">#1A1200</item>
         <item name="colorError">@color/danger</item>
+
+        <item name="android:colorBackground">@color/bg</item>
+        <item name="colorSurface">@color/bg</item>
+        <item name="colorOnSurface">@color/on_bg</item>
+        <item name="colorSurfaceVariant">@color/surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/on_bg</item>
+        <item name="colorOutline">@color/outline</item>
+
+        <item name="colorSurfaceContainer">@color/surface_variant</item>
+        <item name="colorSurfaceContainerLow">#0F172A</item>
+        <item name="colorSurfaceContainerLowest">@color/bg</item>
+        <item name="colorSurfaceContainerHigh">#1B2745</item>
+        <item name="colorSurfaceContainerHighest">#223052</item>
+
+        <item name="android:statusBarColor">@color/bg</item>
+        <item name="android:navigationBarColor">@color/bg</item>
     </style>
 
     <style name="Widget.ScreenMirror.Card" parent="Widget.Material3.CardView.Elevated">
-        <item name="cardCornerRadius">18dp</item>
+        <item name="cardCornerRadius">20dp</item>
         <item name="cardElevation">0dp</item>
+        <item name="cardBackgroundColor">@color/surface_variant</item>
     </style>
 </resources>

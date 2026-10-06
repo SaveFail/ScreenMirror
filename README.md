@@ -33,6 +33,23 @@ No usa servidores externos: el video viaja por tu red local.
 
 ---
 
+## ¿Cómo comparten pantalla dos personas con la misma app?
+
+Con la **app unificada (`:app`)**, cualquiera puede ser emisor o receptor:
+
+1. **Persona A** abre la app → **"Compartir mi pantalla"** → acepta el permiso de captura. La app muestra un **QR**.
+2. **Persona B** abre la app → **"Ver otra pantalla"** → **escanea el QR** de A, o pulsa **"Buscar emisoras en la red"** y toca la emisora.
+3. Para el **sentido contrario**, B pulsa *"Compartir mi pantalla"* y A *"Ver otra pantalla"*.
+
+**Qué se necesita:**
+- Los dos teléfonos en la **misma red Wi‑Fi**.
+- Que **cada persona instale la app una vez** (instalación voluntaria y visible, con permiso de captura visible al emitir).
+- La propia app incluye **"Compartir la app"** con un QR para que la otra persona la descargue e instale.
+
+> Con las apps separadas (`:emitter` / `:viewer`) dos personas con la *misma* app no pueden verse entre sí: hace falta la **unificada**.
+
+---
+
 ## Requisitos
 
 - Dos dispositivos en la **misma red Wi‑Fi** (mismo router, sin "aislamiento de clientes").
@@ -95,6 +112,26 @@ Cada app incluye un botón que muestra un **código QR** apuntando a la APK de l
 - **Receptora → "Descargar la app Emisora"**
 
 El otro teléfono escanea el QR, descarga la APK y la instala (debe permitir "instalar apps de origen desconocido"). Es una instalación **voluntaria y visible**.
+
+---
+
+## Actualizaciones y compartir versión (app unificada)
+
+En la pantalla Home de la app unificada:
+
+- **"Buscar actualización"**: consulta la última release en GitHub y, si hay una más nueva, la **descarga e instala** (abre el instalador del sistema; Android siempre pide confirmación).
+- **"Compartir la app"**: deja **elegir qué versión compartir por QR**:
+  - *Versión instalada (vX)* → enlace fijo a la release de tu versión.
+  - *Última versión publicada* → enlace a la última release.
+
+Así puedes pasar un QR para que otra persona instale exactamente la misma versión que tienes.
+
+---
+
+## Aspecto visual
+
+La interfaz toma inspiración de **TeamViewer** y **AnyDesk**: tema oscuro, azul principal
+(`#0E8EE9`) con acento naranja (`#F5822A`), tarjetas redondeadas y jerarquía clara.
 
 ---
 
