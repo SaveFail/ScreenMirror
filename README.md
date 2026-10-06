@@ -133,6 +133,12 @@ Así puedes pasar un QR para que otra persona instale exactamente la misma versi
 La interfaz toma inspiración de **TeamViewer** y **AnyDesk**: tema oscuro, azul principal
 (`#0E8EE9`) con acento naranja (`#F5822A`), tarjetas redondeadas y jerarquía clara.
 
+### Ver a pantalla completa
+
+La sección **"Ver otra pantalla"** ocupa **toda la pantalla**: al conectar, los controles
+se ocultan y se activa el **modo inmersivo** (sin barras del sistema). Un **botón flotante**
+(arriba a la derecha) muestra/oculta los controles; al volver, se restaura la interfaz.
+
 ---
 
 ## Conexión prolongada (pantalla/CPU activas)

@@ -51,6 +51,9 @@
     <string name="camera_denied">Permiso de cámara denegado</string>
     <string name="camera_error">No se pudo abrir la cámara: %1$s</string>
     <string name="device_name">ScreenMirror (en la red)</string>
+    <string name="controls">Controles</string>
+    <string name="connect_title">Conectar</string>
+    <string name="fullscreen_hint">Pantalla completa · toca el botón para ver los controles</string>
 
     <!-- Actualizaciones -->
     <string name="check_update">Buscar actualización</string>

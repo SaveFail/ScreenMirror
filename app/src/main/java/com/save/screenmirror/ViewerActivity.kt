@@ -8,24 +8,30 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.save.screenmirror.core.DiscoveryClient
 import com.save.screenmirror.core.NetworkScanner
 import com.save.screenmirror.core.QrDialogView
+import com.save.screenmirror.core.Updater
 
 /**
- * App RECEPTORA: encuentra emisoras en la red (UDP + escaneo TCP), escanea su QR
- * o acepta una URL manual, y muestra la pantalla recibida en un WebView.
+ * App RECEPTORA a PANTALLA COMPLETA: descubre emisoras en la red (UDP + escaneo TCP),
+ * escanea su QR o acepta una URL manual, y muestra la pantalla recibida ocupando toda
+ * la pantalla. Los controles se ocultan (modo inmersivo) y se muestran con un boton.
  */
 class ViewerActivity : AppCompatActivity() {
 
     companion object {
-        // URL directa a la ultima APK publicada de la app Emisora.
-        private const val APP_APK_URL =
-            "https://github.com/SaveFail/ScreenMirror/releases/latest/download/app-release.apk"
+        private const val APK_NAME = "app-release.apk"
+        private const val BASE_URL = "https://github.com/SaveFail/ScreenMirror/releases"
         private const val REQ_SCAN = 300
     }
 
@@ -36,6 +42,8 @@ class ViewerActivity : AppCompatActivity() {
     private lateinit var searchBtn: MaterialButton
     private lateinit var webView: WebView
     private lateinit var emptyState: View
+    private lateinit var controlsPanel: View
+    private lateinit var controlsFab: FloatingActionButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,18 +56,55 @@ class ViewerActivity : AppCompatActivity() {
         searchBtn = findViewById(R.id.searchBtn)
         webView = findViewById(R.id.webView)
         emptyState = findViewById(R.id.emptyState)
+        controlsPanel = findViewById(R.id.controlsPanel)
+        controlsFab = findViewById(R.id.controlsFab)
 
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
         webView.settings.mediaPlaybackRequiresUserGesture = false
-        webView.webViewClient = WebViewClient()
+        webView.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                // Al cargar la pagina, pasamos a pantalla completa.
+                setControlsVisible(false)
+            }
+        }
 
         findViewById<MaterialButton>(R.id.connectBtn).setOnClickListener {
             loadUrl(urlInput.text?.toString().orEmpty())
         }
         findViewById<MaterialButton>(R.id.scanBtn).setOnClickListener { openScanner() }
         searchBtn.setOnClickListener { searchNetwork() }
-        findViewById<MaterialButton>(R.id.downloadBtn).setOnClickListener { showDownloadDialog() }
+        findViewById<MaterialButton>(R.id.downloadBtn).setOnClickListener { showShareChooser() }
+        controlsFab.setOnClickListener {
+            setControlsVisible(controlsPanel.visibility != View.VISIBLE)
+        }
+
+        // Atras: si los controles estan ocultos, mostrarlos; si no, salir.
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (controlsPanel.visibility != View.VISIBLE) {
+                    setControlsVisible(true)
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            }
+        })
+
+        setControlsVisible(true)
+    }
+
+    /** Muestra u oculta los controles y activa el modo inmersivo (pantalla completa). */
+    private fun setControlsVisible(visible: Boolean) {
+        controlsPanel.visibility = if (visible) View.VISIBLE else View.GONE
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        if (visible) {
+            controller.show(WindowInsetsCompat.Type.systemBars())
+        } else {
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+            controller.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
     }
 
     private fun searchNetwork() {
@@ -68,9 +113,7 @@ class ViewerActivity : AppCompatActivity() {
         statusText.text = getString(R.string.searching)
         Thread {
             val devices = try {
-                // 1) Broadcast UDP (rapido si la red lo permite).
                 val udp = try { DiscoveryClient().discover(1200) } catch (_: Exception) { emptyList() }
-                // 2) Escaneo TCP del puerto de emision (fiable en cualquier red).
                 val tcp = try { NetworkScanner.scan() } catch (_: Exception) { emptyList() }
                 val merged = LinkedHashMap<String, com.save.screenmirror.core.Discovery.Device>()
                 udp.forEach { merged[it.host] = it }
@@ -129,6 +172,36 @@ class ViewerActivity : AppCompatActivity() {
         devicesCard.visibility = View.GONE
         emptyState.visibility = View.GONE
         webView.loadUrl(url)
+        setControlsVisible(false)
+    }
+
+    private fun showShareChooser() {
+        val current = Updater.currentVersion(this) ?: "?"
+        val options = arrayOf(
+            getString(R.string.share_option_installed, current),
+            getString(R.string.share_option_latest)
+        )
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.share_choose_title)
+            .setItems(options) { _, which ->
+                val url = if (which == 0) {
+                    "$BASE_URL/download/v$current/$APK_NAME"
+                } else {
+                    "$BASE_URL/latest/download/$APK_NAME"
+                }
+                showQrDialog(url)
+            }
+            .show()
+    }
+
+    private fun showQrDialog(url: String) {
+        val sizePx = (240 * resources.displayMetrics.density).toInt()
+        val view = QrDialogView.build(this, url, getString(R.string.share_app_hint), sizePx)
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.share_app_title)
+            .setView(view)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
     }
 
     override fun onDestroy() {
@@ -138,15 +211,5 @@ class ViewerActivity : AppCompatActivity() {
         } catch (_: Exception) {
         }
         super.onDestroy()
-    }
-
-    private fun showDownloadDialog() {
-        val sizePx = (240 * resources.displayMetrics.density).toInt()
-        val view = QrDialogView.build(this, APP_APK_URL, getString(R.string.share_app_hint), sizePx)
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.share_app_title)
-            .setView(view)
-            .setPositiveButton(android.R.string.ok, null)
-            .show()
     }
 }
