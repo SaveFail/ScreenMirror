@@ -8,13 +8,14 @@ import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.materialswitch.MaterialSwitch
+import com.save.screenmirror.core.BackgroundUtils
 import com.save.screenmirror.core.QrDialogView
 import com.save.screenmirror.core.Updater
 
 /**
- * Pantalla principal de la app unificada: elegir entre EMITIR, VER otra pantalla,
- * compartir la app (eligiendo version), y buscar actualizaciones en el repositorio.
- * Asi, dos personas con esta misma app pueden compartir en ambos sentidos.
+ * Pantalla principal: elegir entre EMITIR, VER, compartir la app, buscar
+ * actualizaciones, y gestionar la actividad en segundo plano.
  */
 class HomeActivity : AppCompatActivity() {
 
@@ -25,6 +26,9 @@ class HomeActivity : AppCompatActivity() {
 
     private lateinit var updateStatus: TextView
     private lateinit var updateBtn: MaterialButton
+    private lateinit var backgroundSwitch: MaterialSwitch
+    private lateinit var autoEmitSwitch: MaterialSwitch
+    private lateinit var batteryBtn: MaterialButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,6 +36,9 @@ class HomeActivity : AppCompatActivity() {
 
         updateStatus = findViewById(R.id.updateStatus)
         updateBtn = findViewById(R.id.updateBtn)
+        backgroundSwitch = findViewById(R.id.backgroundSwitch)
+        autoEmitSwitch = findViewById(R.id.autoEmitSwitch)
+        batteryBtn = findViewById(R.id.batteryBtn)
 
         findViewById<MaterialCardView>(R.id.emitCard).setOnClickListener {
             startActivity(Intent(this, EmitterActivity::class.java))
@@ -44,14 +51,75 @@ class HomeActivity : AppCompatActivity() {
         }
         updateBtn.setOnClickListener { checkForUpdate(auto = false) }
 
+        setupBackgroundControls()
+
         val current = Updater.currentVersion(this) ?: "?"
         updateStatus.text = getString(R.string.installed_version, current)
-
-        // Comprobacion automatica al abrir.
         checkForUpdate(auto = true)
+
+        // Transmitir automaticamente al abrir, si el usuario lo activo.
+        if (Prefs.autoEmit(this)) {
+            startActivity(Intent(this, EmitterActivity::class.java).apply {
+                putExtra(EmitterActivity.EXTRA_AUTO_START, true)
+            })
+        }
     }
 
-    /** Consulta la ultima release en GitHub y, si es mas nueva, ofrece instalarla. */
+    private fun setupBackgroundControls() {
+        backgroundSwitch.isChecked = Prefs.backgroundEnabled(this)
+        backgroundSwitch.setOnCheckedChangeListener { _, checked ->
+            Prefs.setBackgroundEnabled(this, checked)
+            if (checked) {
+                PresenceService.start(this)
+                maybePromptBattery()
+            } else {
+                PresenceService.stop(this)
+            }
+        }
+
+        autoEmitSwitch.isChecked = Prefs.autoEmit(this)
+        autoEmitSwitch.setOnCheckedChangeListener { _, checked ->
+            Prefs.setAutoEmit(this, checked)
+        }
+
+        refreshBatteryButton()
+        batteryBtn.setOnClickListener {
+            BackgroundUtils.requestIgnoreBatteryOptimizations(this)
+        }
+
+        // Arranca el servicio de presencia desde el inicio (sin pulsar nada).
+        if (Prefs.backgroundEnabled(this)) {
+            PresenceService.start(this)
+            maybePromptBattery()
+        }
+    }
+
+    private fun refreshBatteryButton() {
+        val ignoring = BackgroundUtils.isIgnoringBatteryOptimizations(this)
+        batteryBtn.visibility = if (ignoring) android.view.View.GONE else android.view.View.VISIBLE
+    }
+
+    /** Pide una vez la exencion de bateria para que no la cierren. */
+    private fun maybePromptBattery() {
+        if (BackgroundUtils.isIgnoringBatteryOptimizations(this)) {
+            refreshBatteryButton()
+            return
+        }
+        if (Prefs.batteryAsked(this)) {
+            refreshBatteryButton()
+            return
+        }
+        Prefs.setBatteryAsked(this, true)
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.bg_battery_title)
+            .setMessage(R.string.bg_battery_msg)
+            .setPositiveButton(R.string.bg_allow) { _, _ ->
+                BackgroundUtils.requestIgnoreBatteryOptimizations(this)
+            }
+            .setNegativeButton(R.string.bg_not_now, null)
+            .show()
+    }
+
     private fun checkForUpdate(auto: Boolean) {
         updateBtn.isEnabled = false
         updateStatus.text = getString(R.string.update_checking)
@@ -102,7 +170,6 @@ class HomeActivity : AppCompatActivity() {
         }.start()
     }
 
-    /** Deja elegir entre la version instalada y la ultima publicada, y muestra su QR. */
     private fun showShareChooser() {
         val current = Updater.currentVersion(this) ?: "?"
         val options = arrayOf(
@@ -130,5 +197,10 @@ class HomeActivity : AppCompatActivity() {
             .setView(view)
             .setPositiveButton(android.R.string.ok, null)
             .show()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refreshBatteryButton()
     }
 }

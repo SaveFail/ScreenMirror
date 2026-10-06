@@ -128,6 +128,24 @@ Así puedes pasar un QR para que otra persona instale exactamente la misma versi
 
 ---
 
+## Segundo plano (siempre activa)
+
+La app se mantiene **activa en segundo plano desde que se abre**, sin pulsar nada:
+
+- Un **servicio en primer plano** ("presencia") arranca al abrir la app y muestra una
+  notificación discreta. Se reinicia solo si el sistema lo mata (`START_STICKY`).
+- También se arranca **al encender el teléfono** (`RECEIVE_BOOT_COMPLETED`).
+- **Exención de batería**: se pide permiso para que Android no la cierre (se puede repetir
+  desde la tarjeta *"Segundo plano"* de la Home).
+- Opción **"Iniciar transmisión al abrir"**: si la activas, al abrir la app se pide el
+  permiso de captura y empieza a emitir (una sola confirmación del sistema).
+
+> ⚠️ Android **no permite** iniciar la captura de pantalla de forma automática ni silenciosa:
+> siempre hay un **consentimiento visible** al empezar a emitir. Lo que sí es automático es
+> que la app permanezca viva y lista en segundo plano.
+
+---
+
 ## Aspecto visual
 
 La interfaz toma inspiración de **TeamViewer** y **AnyDesk**: tema oscuro, azul principal

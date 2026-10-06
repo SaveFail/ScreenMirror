@@ -28,7 +28,9 @@ import com.save.screenmirror.core.QrGenerator
 class EmitterActivity : AppCompatActivity() {
 
     companion object {
-        // URL directa a la ultima APK publicada de la app Receptora.
+        const val EXTRA_AUTO_START = "auto_start"
+
+        // URL directa a la ultima APK publicada de la app.
         private const val APP_APK_URL =
             "https://github.com/SaveFail/ScreenMirror/releases/latest/download/app-release.apk"
     }
@@ -82,6 +84,11 @@ class EmitterActivity : AppCompatActivity() {
 
         requestNotificationPermission()
         updateUi(EmitterService.isRunning)
+
+        // Si se abrio con "Iniciar transmision al abrir", pedir el permiso automaticamente.
+        if (intent?.getBooleanExtra(EXTRA_AUTO_START, false) == true) {
+            statusTitle.postDelayed({ requestCapture() }, 500)
+        }
     }
 
     private fun requestCapture() {

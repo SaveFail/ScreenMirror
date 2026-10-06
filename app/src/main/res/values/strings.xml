@@ -55,6 +55,21 @@
     <string name="connect_title">Conectar</string>
     <string name="fullscreen_hint">Pantalla completa · toca el botón para ver los controles</string>
 
+    <!-- Segundo plano -->
+    <string name="bg_card_title">Segundo plano</string>
+    <string name="bg_switch">Activa en segundo plano</string>
+    <string name="bg_desc">Mantiene ScreenMirror lista aunque no la estés usando (incluso al reiniciar el teléfono).</string>
+    <string name="bg_auto_emit">Iniciar transmisión al abrir</string>
+    <string name="bg_auto_emit_desc">Al abrir la app, pide el permiso de captura y empieza a emitir.</string>
+    <string name="bg_battery_btn">Permitir sin restricciones de batería</string>
+    <string name="bg_battery_title">Mantener activa en segundo plano</string>
+    <string name="bg_battery_msg">Para que Android no cierre ScreenMirror, permite que se ejecute sin restricciones de batería.</string>
+    <string name="bg_battery_ok">Sin restricciones de batería</string>
+    <string name="bg_allow">Permitir</string>
+    <string name="bg_not_now">Ahora no</string>
+    <string name="presence_notif_title">ScreenMirror activo</string>
+    <string name="presence_notif_text">Lista para compartir o ver pantallas en tu red</string>
+
     <!-- Actualizaciones -->
     <string name="check_update">Buscar actualización</string>
     <string name="installed_version">Versión instalada: v%1$s</string>
