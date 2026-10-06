@@ -1,0 +1,19 @@
+# Gradle
+.gradle/
+build/
+app/build/
+
+# Android
+*.apk
+*.aab
+local.properties
+
+# Firma (secretos) - NO subir
+keystore/
+keystore.properties
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+captures/
