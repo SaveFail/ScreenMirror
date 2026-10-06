@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ScreenMirror</string>
+
+    <!-- Home -->
+    <string name="home_subtitle">Comparte tu pantalla o mira la de otro</string>
+    <string name="home_emit_title">Compartir mi pantalla</string>
+    <string name="home_emit_desc">Emite tu pantalla y muestra un QR para que te vean</string>
+    <string name="home_view_title">Ver otra pantalla</string>
+    <string name="home_view_desc">Busca emisoras en la red o escanea su QR</string>
+    <string name="home_share_title">Compartir la app</string>
+    <string name="home_share_desc">Muestra un QR para instalarla en otro teléfono</string>
+
+    <!-- Compartir app / descarga -->
+    <string name="share_app">Compartir la app</string>
+    <string name="share_app_title">Compartir la app</string>
+    <string name="share_app_hint">Escanea este QR con el otro teléfono. Descargará e instalará la app (deberá permitir "instalar apps de origen desconocido").</string>
+
+    <!-- Emisora -->
+    <string name="emitter_subtitle">Comparte tu pantalla</string>
+    <string name="emitter_status_idle">Detenido</string>
+    <string name="emitter_status_starting">Iniciando…</string>
+    <string name="emitter_status_live">Transmitiendo</string>
+    <string name="emitter_idle_hint">Pulsa "Iniciar transmisión" y acepta el permiso de captura.</string>
+    <string name="emitter_live_hint">El otro teléfono puede verte escaneando el QR o buscándote en la red.</string>
+    <string name="emitter_qr_hint">Escanea este código con la app en el otro teléfono</string>
+    <string name="emitter_url_label">Dirección de transmisión</string>
+    <string name="copy">Copiar</string>
+    <string name="copied">Copiado</string>
+    <string name="start_transmission">Iniciar transmisión</string>
+    <string name="stop">Detener</string>
+    <string name="emitter_no_wifi">Sin Wi‑Fi. Conéctate a una red.</string>
+    <string name="emitter_denied">Permiso de captura denegado</string>
+    <string name="emitter_request_error">No se pudo pedir el permiso de captura</string>
+
+    <!-- Receptora -->
+    <string name="viewer_subtitle">Mira otra pantalla</string>
+    <string name="viewer_url_hint">http://IP-DE-LA-EMISORA:8080</string>
+    <string name="scan_qr">Escanear QR</string>
+    <string name="view">Ver</string>
+    <string name="search_network">Buscar emisoras en la red</string>
+    <string name="viewer_idle_hint">Pulsa "Buscar emisoras" o escanea el QR de la emisora.</string>
+    <string name="devices_title">Emisoras encontradas</string>
+    <string name="devices_found">%1$d emisora(s) encontrada(s). Toca una para ver.</string>
+    <string name="no_devices">No se encontró ninguna emisora en la red.</string>
+    <string name="searching">Buscando emisoras en la red…</string>
+    <string name="connected_to">Conectado a %1$s</string>
+    <string name="empty_title">Sin conexión</string>
+    <string name="empty_hint">Busca una emisora o escanea su QR</string>
+    <string name="scan_hint">Apunta la cámara al QR de la app que emite</string>
+    <string name="camera_denied">Permiso de cámara denegado</string>
+    <string name="camera_error">No se pudo abrir la cámara: %1$s</string>
+    <string name="device_name">ScreenMirror (en la red)</string>
+</resources>

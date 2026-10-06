@@ -2,13 +2,14 @@
 
 Ver la pantalla de un teléfono Android desde otro, en la **misma red Wi‑Fi**, sin depender de terceros.
 
-El proyecto tiene **dos aplicaciones** y un módulo de código compartido:
+El proyecto tiene **tres aplicaciones** y un módulo de código compartido:
 
 | Módulo | Tipo | Qué hace |
 |--------|------|----------|
-| `:emitter` | App | **Emisora**: captura su pantalla y la transmite. |
-| `:viewer` | App | **Receptora**: descubre emisoras, escanea su QR o escribe la URL y ve la pantalla. |
-| `:core` | Librería | Captura, servidor HTTP/MJPEG y descubrimiento UDP compartidos. |
+| `:app` | App | **Unificada (recomendada)**: menú para *compartir* o *ver*. Con esta app, **dos personas comparten en ambos sentidos**. |
+| `:emitter` | App | **Emisora**: solo emite (ligera). |
+| `:viewer` | App | **Receptora**: solo ve. |
+| `:core` | Librería | Captura, servidor HTTP/MJPEG, descubrimiento y QR compartidos. |
 
 - **Emisora:** captura con la API oficial `MediaProjection`, sirve un stream MJPEG por HTTP (puerto **8080**) y **anuncia su presencia en la red** (UDP 8888). Muestra un **QR** con la URL.
 - **Receptora:** **busca emisoras en la red automáticamente**, **escanea el QR** con la cámara, o acepta la URL a mano; y muestra la pantalla en un WebView.
