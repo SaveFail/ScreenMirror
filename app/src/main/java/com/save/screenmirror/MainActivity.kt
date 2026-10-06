@@ -110,6 +110,13 @@ class MainActivity : AppCompatActivity() {
             setOnClickListener { stopMirror() }
         }
 
+        val viewBtn = Button(this).apply {
+            text = "Ver pantalla (recibir)"
+            setOnClickListener {
+                startActivity(Intent(this@MainActivity, ViewerActivity::class.java))
+            }
+        }
+
         content.addView(title)
         content.addView(statusView)
         content.addView(urlView)
@@ -117,6 +124,7 @@ class MainActivity : AppCompatActivity() {
         content.addView(qrHint)
         content.addView(startBtn)
         content.addView(stopBtn)
+        content.addView(viewBtn)
 
         val scroll = ScrollView(this).apply { addView(content) }
         setContentView(scroll)

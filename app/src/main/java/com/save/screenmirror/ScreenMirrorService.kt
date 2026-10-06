@@ -42,23 +42,27 @@ class ScreenMirrorService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when (intent?.action) {
-            ACTION_STOP -> {
-                stopSelf()
-                return START_NOT_STICKY
-            }
-            else -> {
-                val resultCode = intent?.getIntExtra(EXTRA_RESULT_CODE, Activity.RESULT_CANCELED)
-                    ?: Activity.RESULT_CANCELED
-                @Suppress("DEPRECATION")
-                val data: Intent? = intent?.getParcelableExtra(EXTRA_DATA)
-                startMirror(resultCode, data)
-            }
+        // Si el sistema reinicia el servicio sin datos (intent nulo) estando la app
+        // en segundo plano, NO intentamos arrancar la captura: en segundo plano no
+        // se permite startForeground() y provocaria ForegroundServiceStartNotAllowedException.
+        if (intent == null || intent.action == ACTION_STOP) {
+            stopSelf()
+            return START_NOT_STICKY
         }
-        return START_STICKY
+
+        val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, Activity.RESULT_CANCELED)
+        @Suppress("DEPRECATION")
+        val data: Intent? = intent.getParcelableExtra(EXTRA_DATA)
+        if (data == null || resultCode != Activity.RESULT_OK) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
+        startMirror(resultCode, data)
+        return START_NOT_STICKY
     }
 
-    private fun startMirror(resultCode: Int, data: Intent?) {
+    private fun startMirror(resultCode: Int, data: Intent) {
         createChannel()
         val ip = NetworkUtils.getLocalIp()
         val notification = buildNotification(
@@ -71,11 +75,6 @@ class ScreenMirrorService : Service() {
             startForeground(NOTIF_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
         } else {
             startForeground(NOTIF_ID, notification)
-        }
-
-        if (data == null || resultCode != Activity.RESULT_OK) {
-            stopSelf()
-            return
         }
 
         val mpm = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager

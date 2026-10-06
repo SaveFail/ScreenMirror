@@ -4,6 +4,7 @@ Sistema **propio** para ver la pantalla de un teléfono Android desde otro, en l
 
 - **Emisor (el teléfono que se muestra):** una sola app, la tuya, que captura la pantalla con la API oficial `MediaProjection` y la transmite, mostrando un **código QR** con la URL.
 - **Receptor (el que mira):** **no instala nada**. Escanea el QR (o escribe la URL) y ve la pantalla en el navegador.
+- **Modo bidireccional (app ↔ app):** cualquiera de los dos teléfonos puede *emitir* o *ver*. En la sección **"Ver pantalla"** de la app, el receptor **escanea el QR de la app emisora con la cámara** (o escribe la URL) y ve el stream en un WebView, sin salir de la app.
 
 No usa servidores externos: el video viaja por tu red local.
 
@@ -77,6 +78,15 @@ También puedes abrir la carpeta `screen-mirror` directamente con **Android Stud
    ```
 3. **Receptor:** conéctate a la **misma Wi‑Fi** y **escanea el QR** con la cámara/el
    navegador, o escribe la URL. Verás la pantalla del emisor en vivo.
+
+### Ver desde la propia app (modo bidireccional)
+
+En el teléfono receptor:
+
+1. Abre **ScreenMirror** y entra en **"Ver pantalla (recibir)"**.
+2. Pulsa **"Escanear QR"** y apunta a la pantalla del emisor (concede permiso de cámara
+   la primera vez). También puedes escribir la URL a mano y pulsar **"Ver"**.
+3. El stream se muestra dentro de la app (WebView).
 4. Para terminar: pulsa **"Detener"** en la app emisora.
 
 ---
@@ -119,6 +129,8 @@ screen-mirror/
 │   ├── AndroidManifest.xml
 │   ├── java/com/save/screenmirror/
 │   │   ├── MainActivity.kt        # pide permiso, arranca/para, muestra la URL
+│   │   ├── ViewerActivity.kt      # modo "Ver pantalla" (receptor, WebView)
+│   │   ├── QrScanActivity.kt      # escaner de QR con la camara (CameraX)
 │   │   ├── ScreenMirrorService.kt # foreground service con MediaProjection
 │   │   ├── CaptureManager.kt      # captura pantalla -> JPEG
 │   │   ├── StreamServer.kt        # servidor HTTP + MJPEG + página web
