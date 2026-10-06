@@ -2,10 +2,12 @@
 
 Sistema **propio** para ver la pantalla de un teléfono Android desde otro, en la **misma red Wi‑Fi**, sin depender de terceros.
 
-- **Emisor (el teléfono que se muestra):** una sola app, la tuya, que captura la pantalla con la API oficial `MediaProjection` y la transmite.
-- **Receptor (el que mira):** **no instala nada**. Solo abre una página web en su navegador.
+- **Emisor (el teléfono que se muestra):** una sola app, la tuya, que captura la pantalla con la API oficial `MediaProjection` y la transmite, mostrando un **código QR** con la URL.
+- **Receptor (el que mira):** **no instala nada**. Escanea el QR (o escribe la URL) y ve la pantalla en el navegador.
 
 No usa servidores externos: el video viaja por tu red local.
+
+![ScreenMirror](docs/screenshot.png)
 
 ---
 
@@ -69,12 +71,12 @@ También puedes abrir la carpeta `screen-mirror` directamente con **Android Stud
 1. **Emisor:** copia `ScreenMirror-debug.apk` al teléfono e instálalo
    (acepta "instalar apps de origen desconocido" para tu gestor de archivos).
 2. **Emisor:** abre **ScreenMirror** y pulsa **"Iniciar transmisión"**.
-   Acepta el diálogo de captura de pantalla. La app mostrará una URL, por ejemplo:
+   Acepta el diálogo de captura de pantalla. La app mostrará un **QR** y una URL, por ejemplo:
    ```
    http://192.168.1.42:8080
    ```
-3. **Receptor:** conéctate a la **misma Wi‑Fi**, abre el navegador y entra a esa URL.
-   Verás la pantalla del emisor en vivo.
+3. **Receptor:** conéctate a la **misma Wi‑Fi** y **escanea el QR** con la cámara/el
+   navegador, o escribe la URL. Verás la pantalla del emisor en vivo.
 4. Para terminar: pulsa **"Detener"** en la app emisora.
 
 ---

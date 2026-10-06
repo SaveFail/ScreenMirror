@@ -2,24 +2,32 @@ package com.save.screenmirror
 
 import android.app.Activity
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Color
 import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.EncodeHintType
+import com.google.zxing.qrcode.QRCodeWriter
 
 /**
  * Pantalla principal: pide permiso de captura, arranca/para el servicio
- * y muestra la URL que debe abrir el telefono receptor.
+ * y muestra la URL + un codigo QR que el telefono receptor escanea.
  */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var statusView: TextView
     private lateinit var urlView: TextView
+    private lateinit var qrView: ImageView
     private var projectionManager: MediaProjectionManager? = null
 
     private val captureLauncher =
@@ -36,9 +44,8 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     startService(intent)
                 }
-                statusView.postDelayed({ updateUi(ScreenMirrorService.isRunning) }, 400)
                 statusView.text = "Iniciando..."
-                urlView.text = urlText()
+                statusView.postDelayed({ updateUi(ScreenMirrorService.isRunning) }, 500)
             } else {
                 statusView.text = "Permiso de captura denegado"
             }
@@ -49,7 +56,7 @@ class MainActivity : AppCompatActivity() {
         projectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
 
         val pad = (16 * resources.displayMetrics.density).toInt()
-        val root = LinearLayout(this).apply {
+        val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(pad, pad, pad, pad)
         }
@@ -74,6 +81,25 @@ class MainActivity : AppCompatActivity() {
             setPadding(0, pad, 0, pad)
         }
 
+        qrView = ImageView(this).apply {
+            setBackgroundColor(Color.WHITE)
+            setPadding(pad / 2, pad / 2, pad / 2, pad / 2)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            val size = (240 * resources.displayMetrics.density).toInt()
+            layoutParams = LinearLayout.LayoutParams(size, size).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
+                topMargin = pad / 2
+                bottomMargin = pad / 2
+            }
+        }
+
+        val qrHint = TextView(this).apply {
+            text = "Escanea este QR con el telefono receptor (o abre la URL)"
+            textSize = 13f
+            gravity = Gravity.CENTER
+            setPadding(0, 0, 0, pad)
+        }
+
         val startBtn = Button(this).apply {
             text = "Iniciar transmision"
             setOnClickListener { requestCapture() }
@@ -84,12 +110,16 @@ class MainActivity : AppCompatActivity() {
             setOnClickListener { stopMirror() }
         }
 
-        root.addView(title)
-        root.addView(statusView)
-        root.addView(urlView)
-        root.addView(startBtn)
-        root.addView(stopBtn)
-        setContentView(root)
+        content.addView(title)
+        content.addView(statusView)
+        content.addView(urlView)
+        content.addView(qrView)
+        content.addView(qrHint)
+        content.addView(startBtn)
+        content.addView(stopBtn)
+
+        val scroll = ScrollView(this).apply { addView(content) }
+        setContentView(scroll)
 
         requestNotificationPermission()
         updateUi(ScreenMirrorService.isRunning)
@@ -116,16 +146,49 @@ class MainActivity : AppCompatActivity() {
     private fun updateUi(running: Boolean) {
         if (running) {
             statusView.text = "TRANSMITIENDO"
-            urlView.text = urlText()
         } else {
             statusView.text = "Detenido"
-            urlView.text = "Pulsa 'Iniciar' y acepta el permiso de captura."
         }
+        refreshUrl()
     }
 
-    private fun urlText(): String {
-        val ip = NetworkUtils.getLocalIp() ?: return "Sin Wi-Fi. Conectate a una red."
-        return "Abre en el telefono receptor:\nhttp://$ip:${ScreenMirrorService.PORT}"
+    /** Muestra la URL y regenera el QR con la IP actual del telefono. */
+    private fun refreshUrl() {
+        val ip = NetworkUtils.getLocalIp()
+        if (ip == null) {
+            urlView.text = "Sin Wi-Fi. Conectate a una red."
+            qrView.setImageBitmap(null)
+            return
+        }
+        val url = "http://$ip:${ScreenMirrorService.PORT}"
+        urlView.text = if (ScreenMirrorService.isRunning) {
+            "Abierto en el receptor:\n$url"
+        } else {
+            "Pulsa 'Iniciar' y acepta el permiso.\n$url"
+        }
+        val sizePx = (240 * resources.displayMetrics.density).toInt()
+        qrView.setImageBitmap(generateQr(url, sizePx))
+    }
+
+    private fun generateQr(text: String, sizePx: Int): Bitmap? {
+        return try {
+            val hints = HashMap<EncodeHintType, Any>().apply {
+                put(EncodeHintType.MARGIN, 1)
+                put(EncodeHintType.CHARACTER_SET, "UTF-8")
+            }
+            val matrix = QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, sizePx, sizePx, hints)
+            val bmp = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.RGB_565)
+            val black = Color.BLACK
+            val white = Color.WHITE
+            for (x in 0 until sizePx) {
+                for (y in 0 until sizePx) {
+                    bmp.setPixel(x, y, if (matrix[x, y]) black else white)
+                }
+            }
+            bmp
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private fun requestNotificationPermission() {

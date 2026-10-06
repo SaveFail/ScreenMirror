@@ -21,8 +21,8 @@ android {
         applicationId = "com.save.screenmirror"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
     }
 
     signingConfigs {
@@ -66,4 +66,6 @@ android {
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.6.1")
+    // Generacion del codigo QR (solo el core, sin la app de escaneo).
+    implementation("com.google.zxing:core:3.5.3")
 }
