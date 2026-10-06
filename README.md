@@ -1,151 +1,163 @@
 # ScreenMirror
 
-Sistema **propio** para ver la pantalla de un teléfono Android desde otro, en la **misma red Wi‑Fi**, sin depender de terceros.
+Ver la pantalla de un teléfono Android desde otro, en la **misma red Wi‑Fi**, sin depender de terceros.
 
-- **Emisor (el teléfono que se muestra):** una sola app, la tuya, que captura la pantalla con la API oficial `MediaProjection` y la transmite, mostrando un **código QR** con la URL.
-- **Receptor (el que mira):** **no instala nada**. Escanea el QR (o escribe la URL) y ve la pantalla en el navegador.
-- **Modo bidireccional (app ↔ app):** cualquiera de los dos teléfonos puede *emitir* o *ver*. En la sección **"Ver pantalla"** de la app, el receptor **escanea el QR de la app emisora con la cámara** (o escribe la URL) y ve el stream en un WebView, sin salir de la app.
+El proyecto tiene **dos aplicaciones** y un módulo de código compartido:
+
+| Módulo | Tipo | Qué hace |
+|--------|------|----------|
+| `:emitter` | App | **Emisora**: captura su pantalla y la transmite. |
+| `:viewer` | App | **Receptora**: descubre emisoras, escanea su QR o escribe la URL y ve la pantalla. |
+| `:core` | Librería | Captura, servidor HTTP/MJPEG y descubrimiento UDP compartidos. |
+
+- **Emisora:** captura con la API oficial `MediaProjection`, sirve un stream MJPEG por HTTP (puerto **8080**) y **anuncia su presencia en la red** (UDP 8888). Muestra un **QR** con la URL.
+- **Receptora:** **busca emisoras en la red automáticamente**, **escanea el QR** con la cámara, o acepta la URL a mano; y muestra la pantalla en un WebView.
+- **Navegador (sin instalar nada):** cualquiera en la misma Wi‑Fi puede abrir `http://IP-DE-LA-EMISORA:8080`.
 
 No usa servidores externos: el video viaja por tu red local.
 
-![ScreenMirror](docs/screenshot.png)
+---
+
+## Cómo se conectan (dos vías)
+
+1. **Descubrimiento en la red:** la Receptora pulsa *"Buscar emisoras en la red"* y la Emisora responde (UDP). Aparece la lista; tocas una y conecta.
+2. **QR:** la Emisora muestra un QR con `http://IP:8080`; la Receptora lo escanea con la cámara y conecta.
+
+```
+ [ App Emisora ]                              [ App Receptora ]
+  MediaProjection                              Descubrimiento UDP / QR
+  HTTP :8080  +  UDP :8888  ─── Wi-Fi LAN ───>  WebView con el stream
+                                               (o cualquier navegador)
+```
 
 ---
 
-## 1. Cómo funciona
+## Requisitos
 
-```
- [ Teléfono emisor ]                          [ Teléfono receptor ]
-  App ScreenMirror      --- Wi-Fi LAN --->     Navegador (Chrome, etc.)
-  - MediaProjection                            http://IP-DEL-EMISOR:8080
-  - Servidor HTTP + MJPEG
-```
-
-La app emisora levanta un servidor HTTP en el puerto **8080**:
-
-| Ruta      | Qué sirve                                   |
-|-----------|---------------------------------------------|
-| `/`       | Página web con el video en vivo (`<img>`)   |
-| `/stream` | Stream MJPEG (`multipart/x-mixed-replace`)  |
-
-El receptor solo abre `http://IP-DEL-EMISOR:8080`.
+- Dos dispositivos en la **misma red Wi‑Fi** (mismo router, sin "aislamiento de clientes").
+- Android **7.0 (API 24)** o superior.
+- La Emisora **siempre** acepta el permiso de captura y muestra una notificación mientras transmite. Es obligatorio por diseño de Android: no existe captura en silencio.
 
 ---
 
-## 2. Requisitos
-
-- Dos dispositivos en la **misma red Wi‑Fi** (mismo router).
-- En el emisor: Android **7.0 (API 24)** o superior.
-- El emisor instala **una** app (esta, compilada por ti). El receptor no instala nada.
-
-> Nota: el emisor **siempre** debe aceptar el permiso de captura de pantalla una vez y
-> la notificación queda visible mientras transmite. Es el comportamiento obligatorio de
-> Android: no existe forma de capturar la pantalla en silencio, y eso protege tu privacidad.
-
----
-
-## 3. Compilar
-
-El proyecto ya está compilado y el APK generado en:
-
-```
-/home/save/Descargas/ScreenMirror-debug.apk
-```
-
-Para recompilar por tu cuenta:
+## Compilar
 
 ```bash
-cd /home/save/screen-mirror
-export ANDROID_HOME=/home/save/Android/Sdk
-./gradlew assembleDebug
+cd screen-mirror
+export ANDROID_HOME=/ruta/a/Android/Sdk
+./gradlew assembleRelease
 ```
 
-El APK queda en `app/build/outputs/apk/debug/app-debug.apk`.
+Genera:
+- `emitter/build/outputs/apk/release/emitter-release.apk`
+- `viewer/build/outputs/apk/release/viewer-release.apk`
 
-También puedes abrir la carpeta `screen-mirror` directamente con **Android Studio**
-(File > Open) y pulsar Run.
+También puedes abrir la carpeta con **Android Studio**.
 
----
+### Firma (release)
 
-## 4. Instalar y usar
+Copia `keystore.properties.example` a `keystore.properties` y genera tu keystore:
 
-1. **Emisor:** copia `ScreenMirror-debug.apk` al teléfono e instálalo
-   (acepta "instalar apps de origen desconocido" para tu gestor de archivos).
-2. **Emisor:** abre **ScreenMirror** y pulsa **"Iniciar transmisión"**.
-   Acepta el diálogo de captura de pantalla. La app mostrará un **QR** y una URL, por ejemplo:
-   ```
-   http://192.168.1.42:8080
-   ```
-3. **Receptor:** conéctate a la **misma Wi‑Fi** y **escanea el QR** con la cámara/el
-   navegador, o escribe la URL. Verás la pantalla del emisor en vivo.
+```bash
+keytool -genkeypair -v -keystore keystore/release.jks -alias screenmirror \
+  -keyalg RSA -keysize 2048 -validity 10000
+```
 
-### Ver desde la propia app (modo bidireccional)
-
-En el teléfono receptor:
-
-1. Abre **ScreenMirror** y entra en **"Ver pantalla (recibir)"**.
-2. Pulsa **"Escanear QR"** y apunta a la pantalla del emisor (concede permiso de cámara
-   la primera vez). También puedes escribir la URL a mano y pulsar **"Ver"**.
-3. El stream se muestra dentro de la app (WebView).
-4. Para terminar: pulsa **"Detener"** en la app emisora.
+Sin `keystore.properties`, la release se genera **sin firmar**.
 
 ---
 
-## 5. Ajustes que puedes tocar
+## Uso
 
-En `CaptureManager.kt`:
+### 1) Emisora (el teléfono que se muestra)
 
-- `targetWidth = 720` (en `ScreenMirrorService.kt`): ancho de la transmisión.
-  Bájalo (p. ej. 540) si tu Wi‑Fi va lento.
-- `quality = 60`: calidad JPEG (1–100). Menos = menos datos.
-- `minFrameIntervalMs = 100L`: intervalo entre cuadros (~10 fps). Súbelo para consumir menos.
+1. Abre **ScreenMirror Emisora** y pulsa **"Iniciar transmisión"**.
+2. Acepta el permiso de captura.
+3. La app muestra un **QR** y la URL (`http://IP:8080`).
 
-En `ScreenMirrorService.kt`:
+### 2) Receptora (el que mira)
 
-- `PORT = 8080`: puerto del servidor.
-
----
-
-## 6. Problemas frecuentes
-
-- **"Sin Wi-Fi. Conéctate a una red."** → el emisor no tiene IP local; asegúrate de estar
-  en Wi‑Fi (no solo datos móviles) y que no esté en una red de invitados aislada.
-- **El receptor no abre la página** → revisa la IP, que ambos estén en la misma red, y
-  que el router no tenga "aislamiento de clientes" (AP isolation) activado.
-- **Se ve lento o con saltos** → reduce `targetWidth` a 540 y/o sube `minFrameIntervalMs` a 150.
-- **Se detiene al bloquear pantalla** → la app usa un foreground service; mantén la
-  notificación. En algunos fabricantes (Xiaomi, Huawei, Samsung) hay que desactivar la
-  optimización de batería para que no la mate.
-- **El emisor es Android 14+** → la primera vez pedirá permiso de notificaciones; concédelo
-  para que el servicio en primer plano no se detenga.
+1. Abre **ScreenMirror Receptora**, en la **misma Wi‑Fi**.
+2. Elige una opción:
+   - **Buscar emisoras en la red** → toca la que aparezca.
+   - **Escanear QR** → apunta al QR de la Emisora.
+   - Escribe la URL y pulsa **Ver**.
+3. Verás la pantalla en vivo.
 
 ---
 
-## 7. Estructura
+## Instalar la otra app (QR desde la propia app)
+
+Cada app incluye un botón que muestra un **código QR** apuntando a la APK de la **otra** versión (última release publicada en GitHub):
+
+- **Emisora → "Descargar la app Receptora"**
+- **Receptora → "Descargar la app Emisora"**
+
+El otro teléfono escanea el QR, descarga la APK y la instala (debe permitir "instalar apps de origen desconocido"). Es una instalación **voluntaria y visible**.
+
+---
+
+## Conexión prolongada (pantalla/CPU activas)
+
+Mientras la Emisora transmite:
+
+- Mantiene la **pantalla encendida** (`FLAG_KEEP_SCREEN_ON`).
+- Mantiene la **CPU despierta** con un `WakeLock`, para que el stream no se corte.
+- **Sigue transmitiendo aunque la app pase a segundo plano o se cierre** (servicio en primer plano con `android:stopWithTask="false"`).
+
+El envío se detiene **solo** al pulsar **"Detener"**, o al desinstalar/forzar la app.
+
+> Nota: Android no permite que una app en segundo plano fuerce por sí sola la pantalla física a quedarse encendida (por seguridad). El `WakeLock` de pantalla es un *best effort*; lo garantizado es que **la CPU y la transmisión siguen activas**. Si quieres la pantalla siempre encendida, deja la app Emisora en primer plano (ahí sí se mantiene).
+
+---
+
+## Ajustes
+
+En `core/.../CaptureManager.kt`:
+- `quality = 60` (calidad JPEG), `minFrameIntervalMs = 100L` (~10 fps).
+En `emitter/.../EmitterService.kt`:
+- `targetWidth = 720`, `PORT = 8080`.
+En `core/.../Discovery.kt`:
+- `PORT = 8888` (puerto UDP de descubrimiento).
+
+---
+
+## Problemas frecuentes
+
+- **No aparece ninguna emisora** → misma Wi‑Fi, y el router no debe tener "aislamiento de clientes" (AP isolation). Revisa que la Emisora esté **transmitiendo**.
+- **La Receptora no abre la página** → revisa la IP y que uses `http://`.
+- **Va lento** → baja `targetWidth` a 540 y sube `minFrameIntervalMs` a 150.
+- **Se detiene al bloquear pantalla** → desactiva la optimización de batería para la app Emisora (Xiaomi/Huawei/Samsung).
+- **Android 14+** → concede el permiso de notificaciones la primera vez.
+
+---
+
+## Estructura
 
 ```
 screen-mirror/
-├── app/src/main/
-│   ├── AndroidManifest.xml
-│   ├── java/com/save/screenmirror/
-│   │   ├── MainActivity.kt        # pide permiso, arranca/para, muestra la URL
-│   │   ├── ViewerActivity.kt      # modo "Ver pantalla" (receptor, WebView)
-│   │   ├── QrScanActivity.kt      # escaner de QR con la camara (CameraX)
-│   │   ├── ScreenMirrorService.kt # foreground service con MediaProjection
-│   │   ├── CaptureManager.kt      # captura pantalla -> JPEG
-│   │   ├── StreamServer.kt        # servidor HTTP + MJPEG + página web
-│   │   └── NetworkUtils.kt        # obtiene la IP local
-│   └── res/values/                # textos y tema
-├── build.gradle.kts
-├── settings.gradle.kts
-└── gradlew
+├── core/                       # libreria compartida
+│   └── src/main/java/com/save/screenmirror/core/
+│       ├── CaptureManager.kt   # MediaProjection -> JPEG
+│       ├── StreamServer.kt     # HTTP + MJPEG + pagina web
+│       ├── Discovery.kt        # descubrimiento UDP (emisor/receptor)
+│       └── NetworkUtils.kt     # IP local
+├── emitter/                    # app EMISORA
+│   └── src/main/java/com/save/screenmirror/emitter/
+│       ├── MainActivity.kt     # permiso, QR, URL
+│       └── EmitterService.kt   # foreground service (captura + HTTP + UDP)
+├── viewer/                     # app RECEPTORA
+│   └── src/main/java/com/save/screenmirror/viewer/
+│       ├── MainActivity.kt     # descubrimiento + QR + WebView
+│       └── QrScanActivity.kt   # escaner de QR (CameraX + ZXing)
+└── README.md
 ```
 
 ---
 
-## 8. Alcance y límites (importante)
+## Alcance y límites
 
-- Es **solo ver**, no controlar. No inyecta toques ni teclas.
-- Requiere **consentimiento visible** en el emisor (permiso de captura). No es sigiloso:
-  es una herramienta de transmisión legítima para tus propios dispositivos.
-- **No** usa exploits ni vulnerabilidades. Usa las APIs públicas de Android.
+- Es **solo ver**, no controlar.
+- **Consentimiento visible obligatorio** en la Emisora (permiso de captura + notificación). No es sigiloso.
+- **No** usa exploits ni vulnerabilidades: solo APIs públicas de Android.
+- Un **navegador de móvil no puede compartir su pantalla** (la API `getDisplayMedia` no existe en navegadores móviles). Por eso el emisor debe ser la app, no una web.

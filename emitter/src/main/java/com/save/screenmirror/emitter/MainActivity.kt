@@ -1,35 +1,45 @@
 package com.save.screenmirror.emitter
 
 import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.Color
 import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Bundle
-import android.view.Gravity
-import android.widget.Button
+import android.view.WindowManager
 import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import com.google.zxing.BarcodeFormat
-import com.google.zxing.EncodeHintType
-import com.google.zxing.qrcode.QRCodeWriter
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.save.screenmirror.core.NetworkUtils
+import com.save.screenmirror.core.QrDialogView
+import com.save.screenmirror.core.QrGenerator
 
 /**
- * App EMISORA: pide permiso de captura, arranca el servicio y muestra el QR + URL
- * para que la app Receptora (o un navegador) vea esta pantalla.
+ * App EMISORA: pide permiso de captura, arranca el servicio y muestra el QR + URL.
+ * Mientras transmite mantiene la pantalla encendida y ofrece el QR para instalar
+ * la app Receptora en el otro telefono.
  */
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var statusView: TextView
-    private lateinit var urlView: TextView
+    companion object {
+        // URL directa a la ultima APK publicada de la app Receptora.
+        private const val VIEWER_APK_URL =
+            "https://github.com/SaveFail/ScreenMirror/releases/latest/download/viewer-release.apk"
+    }
+
+    private lateinit var statusDot: android.view.View
+    private lateinit var statusTitle: TextView
+    private lateinit var statusSubtitle: TextView
+    private lateinit var urlText: TextView
     private lateinit var qrView: ImageView
     private var projectionManager: MediaProjectionManager? = null
+    private var currentUrl: String? = null
 
     private val captureLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -45,81 +55,30 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     startService(intent)
                 }
-                statusView.text = "Iniciando..."
-                statusView.postDelayed({ updateUi(EmitterService.isRunning) }, 500)
+                statusTitle.setText(R.string.emitter_status_starting)
+                statusSubtitle.setText(R.string.emitter_idle_hint)
+                statusTitle.postDelayed({ updateUi(EmitterService.isRunning) }, 500)
             } else {
-                statusView.text = "Permiso de captura denegado"
+                Toast.makeText(this, R.string.emitter_denied, Toast.LENGTH_SHORT).show()
             }
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
         projectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
 
-        val pad = (16 * resources.displayMetrics.density).toInt()
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(pad, pad, pad, pad)
-        }
+        statusDot = findViewById(R.id.statusDot)
+        statusTitle = findViewById(R.id.statusTitle)
+        statusSubtitle = findViewById(R.id.statusSubtitle)
+        urlText = findViewById(R.id.urlText)
+        qrView = findViewById(R.id.qr)
 
-        val title = TextView(this).apply {
-            text = getString(R.string.app_name)
-            textSize = 24f
-            gravity = Gravity.CENTER
-        }
-
-        statusView = TextView(this).apply {
-            text = "Detenido"
-            textSize = 18f
-            gravity = Gravity.CENTER
-            setPadding(0, pad, 0, pad)
-        }
-
-        urlView = TextView(this).apply {
-            textSize = 18f
-            gravity = Gravity.CENTER
-            setTextIsSelectable(true)
-            setPadding(0, pad, 0, pad)
-        }
-
-        qrView = ImageView(this).apply {
-            setBackgroundColor(Color.WHITE)
-            setPadding(pad / 2, pad / 2, pad / 2, pad / 2)
-            scaleType = ImageView.ScaleType.FIT_CENTER
-            val size = (240 * resources.displayMetrics.density).toInt()
-            layoutParams = LinearLayout.LayoutParams(size, size).apply {
-                gravity = Gravity.CENTER_HORIZONTAL
-                topMargin = pad / 2
-                bottomMargin = pad / 2
-            }
-        }
-
-        val qrHint = TextView(this).apply {
-            text = "La app Receptora escanea este QR (o un navegador abre la URL)"
-            textSize = 13f
-            gravity = Gravity.CENTER
-            setPadding(0, 0, 0, pad)
-        }
-
-        val startBtn = Button(this).apply {
-            text = "Iniciar transmision"
-            setOnClickListener { requestCapture() }
-        }
-
-        val stopBtn = Button(this).apply {
-            text = "Detener"
-            setOnClickListener { stopMirror() }
-        }
-
-        content.addView(title)
-        content.addView(statusView)
-        content.addView(urlView)
-        content.addView(qrView)
-        content.addView(qrHint)
-        content.addView(startBtn)
-        content.addView(stopBtn)
-
-        setContentView(ScrollView(this).apply { addView(content) })
+        findViewById<MaterialButton>(R.id.startBtn).setOnClickListener { requestCapture() }
+        findViewById<MaterialButton>(R.id.stopBtn).setOnClickListener { stopMirror() }
+        findViewById<MaterialButton>(R.id.copyBtn).setOnClickListener { copyUrl() }
+        findViewById<MaterialButton>(R.id.downloadBtn).setOnClickListener { showDownloadDialog() }
 
         requestNotificationPermission()
         updateUi(EmitterService.isRunning)
@@ -130,7 +89,7 @@ class MainActivity : AppCompatActivity() {
         try {
             captureLauncher.launch(manager.createScreenCaptureIntent())
         } catch (_: Exception) {
-            statusView.text = "No se pudo pedir el permiso de captura"
+            Toast.makeText(this, R.string.emitter_request_error, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -144,40 +103,54 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateUi(running: Boolean) {
-        statusView.text = if (running) "TRANSMITIENDO" else "Detenido"
+        if (running) {
+            statusDot.setBackgroundResource(R.drawable.dot_live)
+            statusTitle.setText(R.string.emitter_status_live)
+            statusSubtitle.setText(R.string.emitter_live_hint)
+        } else {
+            statusDot.setBackgroundResource(R.drawable.dot_idle)
+            statusTitle.setText(R.string.emitter_status_idle)
+            statusSubtitle.setText(R.string.emitter_idle_hint)
+        }
+        // Mantener la pantalla encendida mientras se transmite.
+        if (running) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
         refreshUrl()
     }
 
     private fun refreshUrl() {
         val ip = NetworkUtils.getLocalIp()
         if (ip == null) {
-            urlView.text = "Sin Wi-Fi. Conectate a una red."
+            currentUrl = null
+            urlText.setText(R.string.emitter_no_wifi)
             qrView.setImageBitmap(null)
             return
         }
         val url = "http://$ip:${EmitterService.PORT}"
-        urlView.text = url
+        currentUrl = url
+        urlText.text = url
         val sizePx = (240 * resources.displayMetrics.density).toInt()
-        qrView.setImageBitmap(generateQr(url, sizePx))
+        qrView.setImageBitmap(QrGenerator.generate(url, sizePx))
     }
 
-    private fun generateQr(text: String, sizePx: Int): Bitmap? {
-        return try {
-            val hints = HashMap<EncodeHintType, Any>().apply {
-                put(EncodeHintType.MARGIN, 1)
-                put(EncodeHintType.CHARACTER_SET, "UTF-8")
-            }
-            val matrix = QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, sizePx, sizePx, hints)
-            val bmp = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.RGB_565)
-            for (x in 0 until sizePx) {
-                for (y in 0 until sizePx) {
-                    bmp.setPixel(x, y, if (matrix[x, y]) Color.BLACK else Color.WHITE)
-                }
-            }
-            bmp
-        } catch (_: Exception) {
-            null
-        }
+    private fun copyUrl() {
+        val url = currentUrl ?: return
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        cm.setPrimaryClip(ClipData.newPlainText("url", url))
+        Toast.makeText(this, R.string.copied, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showDownloadDialog() {
+        val sizePx = (240 * resources.displayMetrics.density).toInt()
+        val view = QrDialogView.build(this, VIEWER_APK_URL, getString(R.string.download_hint), sizePx)
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.download_viewer_title)
+            .setView(view)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
     }
 
     private fun requestNotificationPermission() {

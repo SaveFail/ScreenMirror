@@ -4,10 +4,8 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.view.Gravity
 import android.view.SurfaceHolder
 import android.view.SurfaceView
-import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
@@ -47,35 +45,11 @@ class QrScanActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_qr_scan)
         analysisExecutor = Executors.newSingleThreadExecutor()
 
-        val root = FrameLayout(this)
-        surfaceView = SurfaceView(this)
-        root.addView(
-            surfaceView,
-            FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT
-            )
-        )
-
-        hint = TextView(this).apply {
-            text = "Apunta la camara al QR de la app Emisora"
-            setBackgroundColor(0x99000000.toInt())
-            setTextColor(0xFFFFFFFF.toInt())
-            textSize = 16f
-            gravity = Gravity.CENTER
-            setPadding(24, 24, 24, 24)
-        }
-        root.addView(
-            hint,
-            FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                Gravity.BOTTOM
-            )
-        )
-        setContentView(root)
+        surfaceView = findViewById(R.id.surface)
+        hint = findViewById(R.id.hint)
 
         surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
@@ -103,7 +77,7 @@ class QrScanActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQ_CAMERA && grantResults.firstOrNull() != PackageManager.PERMISSION_GRANTED) {
-            hint.text = "Permiso de camara denegado"
+            hint.setText(R.string.camera_denied)
         }
     }
 
@@ -134,7 +108,7 @@ class QrScanActivity : AppCompatActivity() {
                 provider.unbindAll()
                 provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
             } catch (e: Exception) {
-                hint.text = "No se pudo abrir la camara: ${e.message}"
+                hint.text = getString(R.string.camera_error, e.message ?: "")
             }
         }, ContextCompat.getMainExecutor(this))
     }

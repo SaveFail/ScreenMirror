@@ -1,4 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ScreenMirror Emisora</string>
+    <string name="app_name">ScreenMirror</string>
+    <string name="emitter_subtitle">Emisora · comparte tu pantalla</string>
+
+    <string name="emitter_status_idle">Detenido</string>
+    <string name="emitter_status_starting">Iniciando…</string>
+    <string name="emitter_status_live">Transmitiendo</string>
+
+    <string name="emitter_idle_hint">Pulsa "Iniciar transmisión" y acepta el permiso de captura.</string>
+    <string name="emitter_live_hint">Escanea el QR desde la app Receptora para ver esta pantalla.</string>
+
+    <string name="emitter_qr_hint">Escanea este código con la app Receptora</string>
+    <string name="emitter_url_label">Dirección de transmisión</string>
+    <string name="copy">Copiar</string>
+    <string name="copied">Copiado</string>
+
+    <string name="start_transmission">Iniciar transmisión</string>
+    <string name="stop">Detener</string>
+
+    <string name="download_viewer">Descargar la app Receptora</string>
+    <string name="download_viewer_title">Instalar la app Receptora</string>
+    <string name="download_hint">Escanea este QR con el otro teléfono. Descargará e instalará la app Receptora (deberá permitir "instalar apps de origen desconocido").</string>
+
+    <string name="emitter_no_wifi">Sin Wi‑Fi. Conéctate a una red.</string>
+    <string name="emitter_denied">Permiso de captura denegado</string>
+    <string name="emitter_request_error">No se pudo pedir el permiso de captura</string>
 </resources>

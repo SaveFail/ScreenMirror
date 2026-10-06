@@ -14,6 +14,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.PowerManager
 import com.save.screenmirror.core.CaptureManager
 import com.save.screenmirror.core.DiscoveryResponder
 import com.save.screenmirror.core.NetworkUtils
@@ -43,6 +44,8 @@ class EmitterService : Service() {
     private var capture: CaptureManager? = null
     private var server: StreamServer? = null
     private var discovery: DiscoveryResponder? = null
+    private var cpuLock: PowerManager.WakeLock? = null
+    private var screenLock: PowerManager.WakeLock? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -102,6 +105,37 @@ class EmitterService : Service() {
         }.also { it.start() }
 
         isRunning = true
+        acquireLocks()
+    }
+
+    /**
+     * Mantiene el dispositivo despierto para una conexion prolongada: bloqueo de CPU
+     * (para que el stream no se detenga) y, si el sistema lo permite, de pantalla.
+     */
+    private fun acquireLocks() {
+        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+        try {
+            cpuLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ScreenMirror::cpu").apply {
+                setReferenceCounted(false)
+                acquire()
+            }
+        } catch (_: Exception) {
+        }
+        @Suppress("DEPRECATION")
+        try {
+            screenLock = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, "ScreenMirror::screen").apply {
+                setReferenceCounted(false)
+                acquire()
+            }
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun releaseLocks() {
+        try { cpuLock?.release() } catch (_: Exception) {}
+        try { screenLock?.release() } catch (_: Exception) {}
+        cpuLock = null
+        screenLock = null
     }
 
     private fun createChannel() {
@@ -136,6 +170,7 @@ class EmitterService : Service() {
 
     override fun onDestroy() {
         isRunning = false
+        releaseLocks()
         try { capture?.stop() } catch (_: Exception) {}
         try { server?.stop() } catch (_: Exception) {}
         try { discovery?.stop() } catch (_: Exception) {}

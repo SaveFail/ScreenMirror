@@ -1,4 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ScreenMirror Receptora</string>
+    <string name="app_name">ScreenMirror</string>
+    <string name="viewer_subtitle">Receptora · mira otra pantalla</string>
+
+    <string name="viewer_url_hint">http://IP-DE-LA-EMISORA:8080</string>
+    <string name="scan_qr">Escanear QR</string>
+    <string name="view">Ver</string>
+    <string name="search_network">Buscar emisoras en la red</string>
+
+    <string name="download_emitter">Descargar la app Emisora</string>
+    <string name="download_emitter_title">Instalar la app Emisora</string>
+    <string name="download_hint">Escanea este QR con el otro teléfono. Descargará e instalará la app Emisora (deberá permitir "instalar apps de origen desconocido").</string>
+
+    <string name="viewer_idle_hint">Pulsa "Buscar emisoras" o escanea el QR de la emisora.</string>
+    <string name="devices_title">Emisoras encontradas</string>
+    <string name="devices_found">%1$d emisora(s) encontrada(s). Toca una para ver.</string>
+    <string name="no_devices">No se encontró ninguna emisora en la red.</string>
+    <string name="searching">Buscando emisoras en la red…</string>
+    <string name="connected_to">Conectado a %1$s</string>
+
+    <string name="empty_title">Sin conexión</string>
+    <string name="empty_hint">Busca una emisora o escanea su QR</string>
+
+    <string name="scan_hint">Apunta la cámara al QR de la app Emisora</string>
+    <string name="camera_denied">Permiso de cámara denegado</string>
+    <string name="camera_error">No se pudo abrir la cámara: %1$s</string>
+    <string name="device_name">ScreenMirror Emisora</string>
 </resources>
