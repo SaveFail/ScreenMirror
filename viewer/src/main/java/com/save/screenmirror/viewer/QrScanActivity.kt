@@ -1,4 +1,4 @@
-package com.save.screenmirror
+package com.save.screenmirror.viewer
 
 import android.Manifest
 import android.content.Intent
@@ -25,10 +25,7 @@ import com.google.zxing.common.HybridBinarizer
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-/**
- * Escaner de QR con la camara (CameraX + ZXing).
- * Devuelve el texto leido (la URL de un emisor) en EXTRA_RESULT.
- */
+/** Escaner de QR con la camara (CameraX + ZXing). Devuelve el texto en EXTRA_RESULT. */
 class QrScanActivity : AppCompatActivity() {
 
     companion object {
@@ -53,7 +50,6 @@ class QrScanActivity : AppCompatActivity() {
         analysisExecutor = Executors.newSingleThreadExecutor()
 
         val root = FrameLayout(this)
-
         surfaceView = SurfaceView(this)
         root.addView(
             surfaceView,
@@ -64,7 +60,7 @@ class QrScanActivity : AppCompatActivity() {
         )
 
         hint = TextView(this).apply {
-            text = "Apunta la camara al QR que muestra la app emisora"
+            text = "Apunta la camara al QR de la app Emisora"
             setBackgroundColor(0x99000000.toInt())
             setTextColor(0xFFFFFFFF.toInt())
             textSize = 16f
@@ -79,7 +75,6 @@ class QrScanActivity : AppCompatActivity() {
                 Gravity.BOTTOM
             )
         )
-
         setContentView(root)
 
         surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
@@ -125,10 +120,7 @@ class QrScanActivity : AppCompatActivity() {
                 preview.setSurfaceProvider { request ->
                     val surface = surfaceView.holder.surface
                     if (surface.isValid) {
-                        request.provideSurface(
-                            surface,
-                            ContextCompat.getMainExecutor(this)
-                        ) { }
+                        request.provideSurface(surface, ContextCompat.getMainExecutor(this)) { }
                     } else {
                         request.willNotProvideSurface()
                     }
@@ -140,12 +132,7 @@ class QrScanActivity : AppCompatActivity() {
                 analysis.setAnalyzer(analysisExecutor) { image -> analyze(image) }
 
                 provider.unbindAll()
-                provider.bindToLifecycle(
-                    this,
-                    CameraSelector.DEFAULT_BACK_CAMERA,
-                    preview,
-                    analysis
-                )
+                provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
             } catch (e: Exception) {
                 hint.text = "No se pudo abrir la camara: ${e.message}"
             }
@@ -178,7 +165,7 @@ class QrScanActivity : AppCompatActivity() {
                 }
             }
         } catch (_: Exception) {
-            // Aun no hay un QR legible en este cuadro.
+            // sin QR legible en este cuadro
         } finally {
             try { image.close() } catch (_: Exception) {}
         }

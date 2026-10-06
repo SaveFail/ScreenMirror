@@ -5,7 +5,6 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-// Carga la configuracion de firma si existe (no se sube al repositorio).
 val keystorePropsFile = rootProject.file("keystore.properties")
 val keystoreProps = Properties().apply {
     if (keystorePropsFile.exists()) {
@@ -14,15 +13,15 @@ val keystoreProps = Properties().apply {
 }
 
 android {
-    namespace = "com.save.screenmirror"
+    namespace = "com.save.screenmirror.emitter"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.save.screenmirror"
+        applicationId = "com.save.screenmirror.emitter"
         minSdk = 24
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 1
+        versionName = "1.0"
     }
 
     signingConfigs {
@@ -37,16 +36,10 @@ android {
     }
 
     buildTypes {
-        debug {
-            isMinifyEnabled = false
-        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             if (keystorePropsFile.exists()) {
                 signingConfig = signingConfigs.getByName("release")
             }
@@ -64,14 +57,8 @@ android {
 }
 
 dependencies {
+    implementation(project(":core"))
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.6.1")
-
-    // Generacion y lectura de codigos QR.
     implementation("com.google.zxing:core:3.5.3")
-
-    // Camara para escanear el QR.
-    implementation("androidx.camera:camera-core:1.5.3")
-    implementation("androidx.camera:camera-camera2:1.5.3")
-    implementation("androidx.camera:camera-lifecycle:1.5.3")
 }

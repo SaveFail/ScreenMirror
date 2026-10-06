@@ -1,4 +1,4 @@
-package com.save.screenmirror
+package com.save.screenmirror.emitter
 
 import android.app.Activity
 import android.content.Intent
@@ -18,10 +18,11 @@ import androidx.appcompat.app.AppCompatActivity
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
+import com.save.screenmirror.core.NetworkUtils
 
 /**
- * Pantalla principal: pide permiso de captura, arranca/para el servicio
- * y muestra la URL + un codigo QR que el telefono receptor escanea.
+ * App EMISORA: pide permiso de captura, arranca el servicio y muestra el QR + URL
+ * para que la app Receptora (o un navegador) vea esta pantalla.
  */
 class MainActivity : AppCompatActivity() {
 
@@ -34,10 +35,10 @@ class MainActivity : AppCompatActivity() {
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val data = result.data
             if (result.resultCode == Activity.RESULT_OK && data != null) {
-                val intent = Intent(this, ScreenMirrorService::class.java).apply {
-                    action = ScreenMirrorService.ACTION_START
-                    putExtra(ScreenMirrorService.EXTRA_RESULT_CODE, result.resultCode)
-                    putExtra(ScreenMirrorService.EXTRA_DATA, data)
+                val intent = Intent(this, EmitterService::class.java).apply {
+                    action = EmitterService.ACTION_START
+                    putExtra(EmitterService.EXTRA_RESULT_CODE, result.resultCode)
+                    putExtra(EmitterService.EXTRA_DATA, data)
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     startForegroundService(intent)
@@ -45,7 +46,7 @@ class MainActivity : AppCompatActivity() {
                     startService(intent)
                 }
                 statusView.text = "Iniciando..."
-                statusView.postDelayed({ updateUi(ScreenMirrorService.isRunning) }, 500)
+                statusView.postDelayed({ updateUi(EmitterService.isRunning) }, 500)
             } else {
                 statusView.text = "Permiso de captura denegado"
             }
@@ -94,7 +95,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val qrHint = TextView(this).apply {
-            text = "Escanea este QR con el telefono receptor (o abre la URL)"
+            text = "La app Receptora escanea este QR (o un navegador abre la URL)"
             textSize = 13f
             gravity = Gravity.CENTER
             setPadding(0, 0, 0, pad)
@@ -110,13 +111,6 @@ class MainActivity : AppCompatActivity() {
             setOnClickListener { stopMirror() }
         }
 
-        val viewBtn = Button(this).apply {
-            text = "Ver pantalla (recibir)"
-            setOnClickListener {
-                startActivity(Intent(this@MainActivity, ViewerActivity::class.java))
-            }
-        }
-
         content.addView(title)
         content.addView(statusView)
         content.addView(urlView)
@@ -124,13 +118,11 @@ class MainActivity : AppCompatActivity() {
         content.addView(qrHint)
         content.addView(startBtn)
         content.addView(stopBtn)
-        content.addView(viewBtn)
 
-        val scroll = ScrollView(this).apply { addView(content) }
-        setContentView(scroll)
+        setContentView(ScrollView(this).apply { addView(content) })
 
         requestNotificationPermission()
-        updateUi(ScreenMirrorService.isRunning)
+        updateUi(EmitterService.isRunning)
     }
 
     private fun requestCapture() {
@@ -143,24 +135,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun stopMirror() {
-        val intent = Intent(this, ScreenMirrorService::class.java).apply {
-            action = ScreenMirrorService.ACTION_STOP
+        val intent = Intent(this, EmitterService::class.java).apply {
+            action = EmitterService.ACTION_STOP
         }
         try { startService(intent) } catch (_: Exception) {}
-        stopService(Intent(this, ScreenMirrorService::class.java))
+        stopService(Intent(this, EmitterService::class.java))
         updateUi(false)
     }
 
     private fun updateUi(running: Boolean) {
-        if (running) {
-            statusView.text = "TRANSMITIENDO"
-        } else {
-            statusView.text = "Detenido"
-        }
+        statusView.text = if (running) "TRANSMITIENDO" else "Detenido"
         refreshUrl()
     }
 
-    /** Muestra la URL y regenera el QR con la IP actual del telefono. */
     private fun refreshUrl() {
         val ip = NetworkUtils.getLocalIp()
         if (ip == null) {
@@ -168,12 +155,8 @@ class MainActivity : AppCompatActivity() {
             qrView.setImageBitmap(null)
             return
         }
-        val url = "http://$ip:${ScreenMirrorService.PORT}"
-        urlView.text = if (ScreenMirrorService.isRunning) {
-            "Abierto en el receptor:\n$url"
-        } else {
-            "Pulsa 'Iniciar' y acepta el permiso.\n$url"
-        }
+        val url = "http://$ip:${EmitterService.PORT}"
+        urlView.text = url
         val sizePx = (240 * resources.displayMetrics.density).toInt()
         qrView.setImageBitmap(generateQr(url, sizePx))
     }
@@ -186,11 +169,9 @@ class MainActivity : AppCompatActivity() {
             }
             val matrix = QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, sizePx, sizePx, hints)
             val bmp = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.RGB_565)
-            val black = Color.BLACK
-            val white = Color.WHITE
             for (x in 0 until sizePx) {
                 for (y in 0 until sizePx) {
-                    bmp.setPixel(x, y, if (matrix[x, y]) black else white)
+                    bmp.setPixel(x, y, if (matrix[x, y]) Color.BLACK else Color.WHITE)
                 }
             }
             bmp

@@ -1,4 +1,4 @@
-package com.save.screenmirror
+package com.save.screenmirror.core
 
 import java.io.BufferedInputStream
 import java.io.IOException
@@ -10,13 +10,9 @@ import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.concurrent.thread
 
 /**
- * Servidor HTTP minimo escrito a mano (sin dependencias externas).
- *
- * Rutas:
- *   /         -> pagina web para ver la pantalla (la abre el telefono receptor)
- *   /stream   -> video MJPEG (multipart/x-mixed-replace)
- *
- * El telefono receptor solo necesita un navegador: abre http://IP:8080
+ * Servidor HTTP minimo (sin dependencias).
+ *   /         -> pagina web para ver la pantalla
+ *   /stream   -> video MJPEG
  */
 class StreamServer(private val port: Int) {
 
@@ -60,6 +56,27 @@ class StreamServer(private val port: Int) {
         clients.clear()
     }
 
+    fun broadcast(jpeg: ByteArray) {
+        if (clients.isEmpty()) return
+        val head = "--$boundary\r\nContent-Type: image/jpeg\r\nContent-Length: ${jpeg.size}\r\n\r\n".toByteArray()
+        val tail = "\r\n".toByteArray()
+        val it = clients.iterator()
+        while (it.hasNext()) {
+            val c = it.next()
+            try {
+                synchronized(c) {
+                    c.out.write(head)
+                    c.out.write(jpeg)
+                    c.out.write(tail)
+                    c.out.flush()
+                }
+            } catch (_: Exception) {
+                it.remove()
+                c.close()
+            }
+        }
+    }
+
     private fun handle(socket: Socket) {
         try {
             socket.tcpNoDelay = true
@@ -69,12 +86,10 @@ class StreamServer(private val port: Int) {
                 socket.close()
                 return
             }
-            // Consumir cabeceras hasta linea en blanco.
             while (true) {
                 val line = readLine(input) ?: break
                 if (line.isEmpty()) break
             }
-
             val path = requestLine.split(" ").getOrNull(1) ?: "/"
             when {
                 path == "/" || path.startsWith("/index") -> sendHtml(socket)
@@ -99,29 +114,6 @@ class StreamServer(private val port: Int) {
         out.write(header)
         out.flush()
         clients.add(Client(socket, out))
-    }
-
-    /** Envia un cuadro JPEG a todos los receptores conectados. */
-    fun broadcast(jpeg: ByteArray) {
-        if (clients.isEmpty()) return
-        val head = "--$boundary\r\nContent-Type: image/jpeg\r\nContent-Length: ${jpeg.size}\r\n\r\n".toByteArray()
-        val tail = "\r\n".toByteArray()
-
-        val it = clients.iterator()
-        while (it.hasNext()) {
-            val c = it.next()
-            try {
-                synchronized(c) {
-                    c.out.write(head)
-                    c.out.write(jpeg)
-                    c.out.write(tail)
-                    c.out.flush()
-                }
-            } catch (_: Exception) {
-                it.remove()
-                c.close()
-            }
-        }
     }
 
     private fun sendHtml(socket: Socket) {

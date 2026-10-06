@@ -4,10 +4,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
 
@@ -28,18 +26,9 @@
         </activity>
 
         <activity
-            android:name=".ViewerActivity"
-            android:exported="false" />
-
-        <activity
             android:name=".QrScanActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
-
-        <service
-            android:name=".ScreenMirrorService"
-            android:exported="false"
-            android:foregroundServiceType="mediaProjection" />
     </application>
 
 </manifest>

@@ -1,4 +1,4 @@
-package com.save.screenmirror
+package com.save.screenmirror.emitter
 
 import android.app.Activity
 import android.app.Notification
@@ -14,21 +14,25 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import com.save.screenmirror.core.CaptureManager
+import com.save.screenmirror.core.DiscoveryResponder
+import com.save.screenmirror.core.NetworkUtils
+import com.save.screenmirror.core.StreamServer
 
 /**
- * Servicio en primer plano que mantiene viva la captura y el servidor HTTP.
- * Android exige un foreground service para usar MediaProjection.
+ * Servicio en primer plano de la app EMISORA: captura la pantalla, la sirve por HTTP
+ * (MJPEG) y responde al descubrimiento UDP para que la app Receptora la encuentre.
  */
-class ScreenMirrorService : Service() {
+class EmitterService : Service() {
 
     companion object {
-        const val ACTION_START = "com.save.screenmirror.START"
-        const val ACTION_STOP = "com.save.screenmirror.STOP"
+        const val ACTION_START = "com.save.screenmirror.emitter.START"
+        const val ACTION_STOP = "com.save.screenmirror.emitter.STOP"
         const val EXTRA_RESULT_CODE = "resultCode"
         const val EXTRA_DATA = "data"
 
         const val PORT = 8080
-        private const val CHANNEL_ID = "screenmirror"
+        private const val CHANNEL_ID = "emitter"
         private const val NOTIF_ID = 101
 
         @Volatile
@@ -38,13 +42,11 @@ class ScreenMirrorService : Service() {
     private var projection: MediaProjection? = null
     private var capture: CaptureManager? = null
     private var server: StreamServer? = null
+    private var discovery: DiscoveryResponder? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Si el sistema reinicia el servicio sin datos (intent nulo) estando la app
-        // en segundo plano, NO intentamos arrancar la captura: en segundo plano no
-        // se permite startForeground() y provocaria ForegroundServiceStartNotAllowedException.
         if (intent == null || intent.action == ACTION_STOP) {
             stopSelf()
             return START_NOT_STICKY
@@ -69,8 +71,6 @@ class ScreenMirrorService : Service() {
             if (ip != null) "Abre http://$ip:$PORT en el otro telefono" else "Conectate a una red Wi-Fi"
         )
 
-        // En Android 10+ debe iniciarse el foreground service (tipo mediaProjection)
-        // ANTES de obtener la proyeccion.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(NOTIF_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
         } else {
@@ -96,6 +96,7 @@ class ScreenMirrorService : Service() {
         }, Handler(Looper.getMainLooper()))
 
         server = StreamServer(PORT).also { it.start() }
+        discovery = DiscoveryResponder(PORT).also { it.start() }
         capture = CaptureManager(this, proj, targetWidth = 720) { jpeg ->
             server?.broadcast(jpeg)
         }.also { it.start() }
@@ -126,7 +127,7 @@ class ScreenMirrorService : Service() {
             Notification.Builder(this)
         }
         return builder
-            .setContentTitle("ScreenMirror activo")
+            .setContentTitle("ScreenMirror Emisora activa")
             .setContentText(text)
             .setSmallIcon(android.R.drawable.ic_menu_view)
             .setOngoing(true)
@@ -137,9 +138,11 @@ class ScreenMirrorService : Service() {
         isRunning = false
         try { capture?.stop() } catch (_: Exception) {}
         try { server?.stop() } catch (_: Exception) {}
+        try { discovery?.stop() } catch (_: Exception) {}
         try { projection?.stop() } catch (_: Exception) {}
         capture = null
         server = null
+        discovery = null
         projection = null
         super.onDestroy()
     }

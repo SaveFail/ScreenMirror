@@ -1,4 +1,4 @@
-package com.save.screenmirror
+package com.save.screenmirror.core
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -12,21 +12,15 @@ import android.os.Handler
 import android.os.HandlerThread
 import java.io.ByteArrayOutputStream
 
-/**
- * Captura la pantalla con la API oficial MediaProjection y entrega cada cuadro
- * como JPEG (para el stream MJPEG servido por HTTP).
- *
- * targetWidth: ancho al que se reduce la captura (menos ancho = menos datos).
- */
+/** Captura la pantalla con MediaProjection y entrega cada cuadro como JPEG. */
 class CaptureManager(
     private val context: Context,
     private val projection: MediaProjection,
     private val targetWidth: Int,
     private val onJpeg: (ByteArray) -> Unit
 ) {
-    // Calidad JPEG y limite de cuadros para no saturar la red.
     private val quality = 60
-    private val minFrameIntervalMs = 100L // ~10 fps
+    private val minFrameIntervalMs = 100L
 
     private var reader: ImageReader? = null
     private var virtualDisplay: VirtualDisplay? = null
@@ -44,7 +38,7 @@ class CaptureManager(
 
         val w = if (screenW > targetWidth) targetWidth else screenW
         var h = (screenH.toFloat() * w / screenW).toInt()
-        if (h % 2 == 1) h -= 1 // algunos codificadores piden pares
+        if (h % 2 == 1) h -= 1
 
         val ht = HandlerThread("screen-capture").also { it.start() }
         thread = ht
@@ -60,7 +54,6 @@ class CaptureManager(
                 null
             }
             if (image == null) return@setOnImageAvailableListener
-
             try {
                 val now = System.currentTimeMillis()
                 if (now - lastFrameAt >= minFrameIntervalMs) {
@@ -90,13 +83,8 @@ class CaptureManager(
             val rowStride = plane.rowStride
             val rowPadding = rowStride - pixelStride * w
 
-            val bitmap = Bitmap.createBitmap(
-                w + rowPadding / pixelStride,
-                h,
-                Bitmap.Config.ARGB_8888
-            )
+            val bitmap = Bitmap.createBitmap(w + rowPadding / pixelStride, h, Bitmap.Config.ARGB_8888)
             bitmap.copyPixelsFromBuffer(buffer)
-
             val cropped = if (rowPadding == 0) bitmap else Bitmap.createBitmap(bitmap, 0, 0, w, h)
 
             val out = ByteArrayOutputStream()

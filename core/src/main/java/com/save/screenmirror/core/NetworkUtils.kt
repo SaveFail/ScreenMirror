@@ -1,11 +1,9 @@
-package com.save.screenmirror
+package com.save.screenmirror.core
 
 import java.net.Inet4Address
 import java.net.NetworkInterface
 
-/**
- * Utilidades para obtener la IP local del telefono dentro de la red Wi-Fi.
- */
+/** Utilidades de red compartidas. */
 object NetworkUtils {
 
     fun getLocalIp(): String? {
@@ -19,7 +17,7 @@ object NetworkUtils {
                     if (addr is Inet4Address && !addr.isLoopbackAddress) {
                         val ip = addr.hostAddress ?: continue
                         if (ip.startsWith("192.168.") || ip.startsWith("10.")) {
-                            return ip // las mas tipicas de una LAN domestica
+                            return ip
                         }
                         candidates.add(ip)
                     }
